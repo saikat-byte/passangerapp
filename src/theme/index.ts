@@ -1,11 +1,11 @@
 export const TOITOI_THEME = {
   colors: {
-    primary: '#FFD700',    // Eye-catchy Taxi Yellow
-    primaryLight: '#FFFBEB', // Light tint for image backgrounds
-    secondary: '#BBA8FF',  // Soft Purple for highlights/secondary actions
-    success: '#4ADE80',    // Vibrant Green
-    danger: '#FF6B6B',     // Soft Red
-    background: '#FDFBF7', // Off-white (easy on eyes)
+    primary: '#FFD700',    
+    primaryLight: '#FFFBEB', 
+    secondary: '#BBA8FF', 
+    success: '#4ADE80',    
+    danger: '#FF6B6B',    
+    background: '#FDFBF7', 
     white: '#FFFFFF',
     black: '#000000',
     gray: { light: '#E5E7EB', medium: '#9CA3AF', text: '#4B5563' }

@@ -26,7 +26,14 @@
       "expo-secure-store",
       "@react-native-firebase/app",
       "@react-native-firebase/messaging",
-      "expo-location"
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow TOITOI to use your location to find nearby drivers."
+        }
+      ],
+      "expo-localization",
+      "@react-native-community/datetimepicker"
     ]
   }
 }

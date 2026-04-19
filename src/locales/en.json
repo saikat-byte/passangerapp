@@ -1,0 +1,10 @@
+{
+  "login": {
+    "title": "Hello There!",
+    "subtitle": "Enter your phone number to continue.",
+    "send_otp": "SEND OTP"
+  },
+  "dashboard": {
+    "where_to": "Where to?"
+  }
+}
