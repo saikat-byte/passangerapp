@@ -3,24 +3,24 @@ import { NavigationContainer } from '@react-navigation/native';
 import LanguageSelectionScreen from '../screens/Auth/LanguageSelectionScreen';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import GlobalErrorToast from '../components/GlobalErrorToast';
-// Screens
+
 import SplashScreen from '../screens/Startup/SplashScreen';
 import LoginScreen from '../screens/Auth/LoginScreen';
 import OtpVerificationScreen from '../screens/Auth/OtpVerificationScreen';
 import SavedPlacesScreen from '../screens/Profile/SavedPlacesScreen';
 import ActiveRideScreen from '../screens/Ride/ActiveRideScreen';
 import BookingDashboardScreen from '../screens/Dashboard/BookingDashboardScreen';
+import RideMatchingScreen from '../screens/Ride/RideMatchingScreen';
 import '../locales/i18n';
 
-// 🔴 Phase 6 New Screens (Make sure these files exist or create empty placeholders for now)
-import ProfileScreen from '../screens/Profile/ProfileScreen'; // Placeholder
-import WalletScreen from '../screens/Wallet/WalletScreen'; // Placeholder
+import ProfileScreen from '../screens/Profile/ProfileScreen'; 
+import WalletScreen from '../screens/Wallet/WalletScreen'; 
 import SubscriptionPassScreen from '../screens/Menu/SubscriptionPassScreen';
 import RideHistoryScreen from '../screens/Menu/RideHistoryScreen';
 import RideInvoiceScreen from '../screens/Menu/RideInvoiceScreen';
-import ReferralScreen from '../screens/Menu/ReferralScreen'; // Placeholder
+import ReferralScreen from '../screens/Menu/ReferralScreen'; 
 import EmergencyContactsScreen from '../screens/Safety/EmergencyContactsScreen';
-import LegalDocumentScreen from '../screens/Menu/LegalDocumentScreen'; // Placeholder
+import LegalDocumentScreen from '../screens/Menu/LegalDocumentScreen'; 
 
 const RootStack = createNativeStackNavigator();
 const AuthStack = createNativeStackNavigator();
@@ -39,11 +39,9 @@ function AuthNavigator() {
 function MainNavigator() {
   return (
     <MainStack.Navigator screenOptions={{ headerShown: false }}>
-      {/* Dashboard & Core Ride */}
       <MainStack.Screen name="BookingDashboard" component={BookingDashboardScreen} />
+      <MainStack.Screen name="RideMatchingScreen" component={RideMatchingScreen} />
       <MainStack.Screen name="ActiveRide" component={ActiveRideScreen} />
-      
-      {/* Side Menu Screens */}
       <MainStack.Screen name="Profile" component={ProfileScreen} />
       <MainStack.Screen name="Wallet" component={WalletScreen} />
       <MainStack.Screen name="SubscriptionPassScreen" component={SubscriptionPassScreen} />

@@ -7,28 +7,9 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:871936263506:android:2be6696aaa85bc3942e68b",
+        "mobilesdk_app_id": "1:871936263506:android:03aeecf8a48bb74a42e68b",
         "android_client_info": {
-          "package_name": "com.toitoi.app"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "AIzaSyAe6eGlU2p-NpFV3M-PAFU2iYjd0YEM0X8"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:871936263506:android:edc74d8e007d6acb42e68b",
-        "android_client_info": {
-          "package_name": "com.toitoi.passenger"
+          "package_name": "com.toitoi.passanger"
         }
       },
       "oauth_client": [],

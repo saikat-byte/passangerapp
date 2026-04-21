@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, FlatList, ScrollView, Image, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, FlatList, ScrollView, Image, TextInput, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
-
+import { useNavigation } from '@react-navigation/native';
+import { usePassengerRideStore } from '../store/usePassengerRideStore';
 import { useBookingStore } from '../store/useBookingStore';
 import { usePassengerAuthStore } from '../store/usePassengerAuthStore';
 import { TOITOI_THEME } from '../theme';
+
+import { BookingAPI } from '../services/api';
 
 export default function FareEstimateSheet({ onCancel }: { onCancel: () => void }) {
   const insets = useSafeAreaInsets();
@@ -16,7 +19,8 @@ export default function FareEstimateSheet({ onCancel }: { onCancel: () => void }
   const { 
     vehicleCategories, batchFares, selectedCategory, setSelectedCategory, 
     distanceKm, isShared, toggleShared, isWomenSpecial, toggleWomenSpecial,
-    bookedSeats, setBookedSeats, scheduledAt, setScheduledAt 
+    bookedSeats, setBookedSeats, scheduledAt, setScheduledAt, pickup, dropoff,
+    serviceType
   } = useBookingStore();
   
   const [isRequesting, setIsRequesting] = useState(false);
@@ -33,32 +37,81 @@ export default function FareEstimateSheet({ onCancel }: { onCancel: () => void }
   const selectedVehicleInfo = safeCategories.find(c => c.id === selectedCategory);
   const selectedFareData = batchFares[selectedCategory];
 
-  // 🔴 1. Dynamic Max Seats Logic
   const getMaxSeats = () => {
-    // If backend provides max_seats, use it
     if (selectedVehicleInfo?.max_seats) return selectedVehicleInfo.max_seats;
-    
-    // Smart fallback based on vehicle name
     const name = selectedVehicleInfo?.name?.toLowerCase() || '';
-    if (name.includes('bike') || name.includes('moto')) return 1; // Rider chhara 1 jon passenger
+    if (name.includes('bike') || name.includes('moto')) return 1; 
     if (name.includes('toto') || name.includes('auto')) return 5;
     if (name.includes('sedan') || name.includes('mini') || name.includes('car')) return 4;
-    return 4; // Default fallback
+    return 4; 
   };
 
   const maxSeats = getMaxSeats();
 
-  // 🔴 Auto-adjust seats if user switches to a smaller vehicle (e.g. from Toto to Bike)
   useEffect(() => {
     if (bookedSeats > maxSeats) {
       setBookedSeats(maxSeats);
     }
   }, [selectedCategory, maxSeats]);
 
-  const handleConfirmRide = () => {
+  const navigation = useNavigation<any>();
+  const { setCurrentRide } = usePassengerRideStore();
+
+  const handleConfirmRide = async () => {
     setIsRequesting(true);
-    // Move to Active Ride logic
+    
+    try {
+      if (!pickup) {
+        Alert.alert('Error', 'Pickup location is missing.');
+        setIsRequesting(false);
+        return;
+      }
+
+
+      const payload = {
+        pickup_lat: pickup.latitude,
+        pickup_lng: pickup.longitude,
+        pickup_address: pickup.address || 'Selected Pickup',
+        drop_lat: dropoff?.latitude || pickup.latitude,
+        drop_lng: dropoff?.longitude || pickup.longitude,
+        drop_address: dropoff?.address || 'Selected Dropoff',
+        vehicle_category_id: selectedCategory,
+        fare_amount: calculateFinalFare(selectedFareData) ?? 0,
+        is_shared: isShared,
+        booked_seats: isShared ? bookedSeats : 1,
+        is_women_special: isWomenSpecial,
+        scheduled_at: scheduledAt ? scheduledAt.toISOString() : null,
+        payment_method: 'cash', 
+        ride_type: isShared ? 'shared' : 'full', 
+        trip_distance: distanceKm || 0,
+      };
+
+      const response = await BookingAPI.requestRide(payload);
+      
+      const newRide = response.data?.data || response.data;
+
+      setCurrentRide(newRide);
+      onCancel(); 
+      navigation.navigate('RideMatchingScreen'); 
+
+    } catch (error: any) {
+      // 🔴 CTO FIX: Capture exact Laravel Backend Error
+      const backendError = error.response?.data;
+      const errorMessage = backendError?.message || error.message || 'Unknown error occurred';
+      
+      console.log('--- BACKEND ERROR DETAILS ---');
+      console.log(backendError || error);
+      console.log('-----------------------------');
+
+      Alert.alert(
+        'Booking Failed ❌', 
+        `Backend says: ${errorMessage}\n\nCheck terminal for full payload issue.`
+      );
+    } finally {
+      setIsRequesting(false);
+    }
   };
+
 
   const handlePickerChange = (event: any, selectedDate?: Date) => {
     setShowPicker(Platform.OS === 'ios');
@@ -83,12 +136,11 @@ export default function FareEstimateSheet({ onCancel }: { onCancel: () => void }
     setShowPicker(true);
   };
 
-  // 🔴 2. Dynamic Fare Calculation + Rounding
   const calculateFinalFare = (fareData: any) => {
     if (!fareData) return null;
     const base = parseFloat(fareData.total_fare || fareData.totalFare || 0);
     const final = isShared ? base * bookedSeats : base;
-    return Math.round(final); // 🔴 Rounding the final value
+    return Math.round(final); 
   };
 
   return (
@@ -118,7 +170,6 @@ export default function FareEstimateSheet({ onCancel }: { onCancel: () => void }
         )}
       </ScrollView>
 
-      {/* Seat Counter UI */}
       {isShared && (
         <View style={styles.seatCounterContainer}>
           <Text style={styles.seatCounterLabel}>How many seats?</Text>
@@ -133,7 +184,6 @@ export default function FareEstimateSheet({ onCancel }: { onCancel: () => void }
             
             <Text style={styles.counterNumber}>{bookedSeats}</Text>
             
-            {/* 🔴 Dynamic Max Seat Validation */}
             <TouchableOpacity 
               style={[styles.counterBtn, bookedSeats >= maxSeats && { opacity: 0.5 }]} 
               onPress={() => bookedSeats < maxSeats && setBookedSeats(bookedSeats + 1)} 
@@ -151,7 +201,6 @@ export default function FareEstimateSheet({ onCancel }: { onCancel: () => void }
          </TouchableOpacity>
       )}
 
-      {/* Vehicle List */}
       <View style={{ maxHeight: 200 }}>
         <FlatList
           data={safeCategories}
@@ -186,7 +235,6 @@ export default function FareEstimateSheet({ onCancel }: { onCancel: () => void }
         />
       </View>
 
-      {/* Fare Breakdown & Promo */}
       {selectedFareData && (
         <View style={styles.breakdownContainer}>
           <View style={styles.promoRow}>
@@ -196,7 +244,6 @@ export default function FareEstimateSheet({ onCancel }: { onCancel: () => void }
           <View style={styles.fareDetails}>
              <View style={styles.fareRow}>
                 <Text style={styles.fareLabel}>{isShared ? `Base Fare (x${bookedSeats} Seats)` : 'Base Fare'}</Text>
-                {/* 🔴 Rounded Breakdown Values */}
                 <Text style={styles.fareValue}>
                   ₹{Math.round(parseFloat(selectedFareData.base_fare || selectedFareData.total_fare || 0) * (isShared ? bookedSeats : 1))}
                 </Text>

@@ -2,8 +2,8 @@ import axios from 'axios';
 import { usePassengerAuthStore } from '../store/usePassengerAuthStore';
 import { Platform } from 'react-native';
 
-const BASE_URL = 'http://192.168.29.11:8000/api/v1'; 
-const MOBILE_APP_SECRET = 'toitoi-secret'; 
+const BASE_URL = 'https://staging.toitoi.co.in/api/v1'; 
+const MOBILE_APP_SECRET = 'toitoi-secret-api-326589410'; 
 
 const api = axios.create({
   baseURL: BASE_URL,

@@ -1,7 +1,7 @@
 import { create } from 'zustand';
-import { RideAPI } from '../services/api';
+import api from '../services/api'; 
 import { setupEcho } from '../services/echo';
-import { AnimatedRegion } from 'react-native-maps'; // Needed for smooth map car movement
+import { AnimatedRegion } from 'react-native-maps'; 
 
 export interface Ride {
   id: string | number;
@@ -18,12 +18,12 @@ interface Location { latitude: number; longitude: number; heading?: number }
 interface PassengerRideState {
   currentRide: Ride | null;
   driverLocation: Location | null;
-  animatedDriverLocation: any; // 🔴 Added for smooth movement
+  animatedDriverLocation: any;
   isLoadingRide: boolean;
   echoInstance: any;
   fetchCurrentRide: () => Promise<void>;
   setCurrentRide: (ride: Ride) => void;
-  initRideSockets: (rideId: string | number) => void;
+  initRideSockets: (rideId: string | number) => Promise<void>; 
   disconnectSockets: () => void;
 }
 
@@ -42,7 +42,7 @@ export const usePassengerRideStore = create<PassengerRideState>((set, get) => ({
   fetchCurrentRide: async () => {
     set({ isLoadingRide: true });
     try {
-      const response = await RideAPI.getCurrentRide();
+      const response = await api.get('/ride/current'); 
       const ride = response.data?.data;
       set({ currentRide: ride || null, isLoadingRide: false });
       if (ride) get().initRideSockets(ride.id);
@@ -51,45 +51,49 @@ export const usePassengerRideStore = create<PassengerRideState>((set, get) => ({
     }
   },
 
-  initRideSockets: (rideId) => {
+  initRideSockets: async (rideId) => {
     const { echoInstance, animatedDriverLocation } = get();
     if (echoInstance) return; 
 
-    const echo = setupEcho();
-    set({ echoInstance: echo });
-    console.log(`📡 Passenger listening to private-ride.${rideId}`);
+    try {
+      const echo = await setupEcho();
+      set({ echoInstance: echo });
+      console.log(`📡 Passenger listening to private-ride.${rideId}`);
 
-    // 🔴 FIXED: Listening to exact Laravel Events
-    echo.private(`ride.${rideId}`)
-      .listen('.RideAccepted', (e: any) => {
-         set((state) => ({ currentRide: { ...state.currentRide, ...e.ride } as Ride }));
-      })
-      .listen('.RideArrived', (e: any) => {
-         set((state) => ({ currentRide: { ...state.currentRide, ...e.ride, status: 'arrived' } as Ride }));
-      })
-      .listen('.RideStarted', (e: any) => {
-         set((state) => ({ currentRide: { ...state.currentRide, ...e.ride, status: 'in_progress' } as Ride }));
-      })
-      .listen('.RideCompleted', (e: any) => {
-         set((state) => ({ currentRide: { ...state.currentRide, ...e.ride, status: 'completed' } as Ride }));
-      })
-      .listen('.RideCancelled', (e: any) => {
-         set((state) => ({ currentRide: { ...state.currentRide, ...e.ride, status: 'cancelled' } as Ride }));
-      })
-      .listen('.DriverLocationUpdated', (e: any) => {
-        // 🔴 Smooth Animation Logic
-        animatedDriverLocation.timing({
-          latitude: e.latitude, longitude: e.longitude, duration: 2500, useNativeDriver: false
-        }).start();
-        set({ driverLocation: { latitude: e.latitude, longitude: e.longitude, heading: e.heading } });
-      });
+      // 🔴 FIX: Added dot (.) before event names to bypass Laravel namespace issues
+      echo.private(`ride.${rideId}`)
+        .listen('.RideAccepted', (e: any) => {
+           console.log("✅ RIDE ACCEPTED EVENT:", e);
+           set((state) => ({ currentRide: { ...state.currentRide, ...e.ride } as Ride }));
+        })
+        .listen('.RideArrived', (e: any) => {
+           set((state) => ({ currentRide: { ...state.currentRide, ...e.ride, status: 'arrived' } as Ride }));
+        })
+        .listen('.RideStarted', (e: any) => {
+           set((state) => ({ currentRide: { ...state.currentRide, ...e.ride, status: 'in_progress' } as Ride }));
+        })
+        .listen('.RideCompleted', (e: any) => {
+           set((state) => ({ currentRide: { ...state.currentRide, ...e.ride, status: 'completed' } as Ride }));
+        })
+        .listen('.RideCancelled', (e: any) => {
+           set((state) => ({ currentRide: { ...state.currentRide, ...e.ride, status: 'cancelled' } as Ride }));
+        })
+        .listen('.DriverLocationUpdated', (e: any) => {
+          animatedDriverLocation.timing({
+            latitude: e.latitude, longitude: e.longitude, duration: 2500, useNativeDriver: false
+          }).start();
+          set({ driverLocation: { latitude: e.latitude, longitude: e.longitude, heading: e.heading } });
+        });
+    } catch (error) {
+      console.error('Socket initialization failed', error);
+    }
   },
 
   disconnectSockets: () => {
     const { echoInstance, currentRide } = get();
     if (echoInstance && currentRide) {
       echoInstance.leave(`ride.${currentRide.id}`);
-      set({ echoInstance: null, currentRide: null, driverLocation: null }); 
+      set({ echoInstance: null }); 
     }
   }
 }));

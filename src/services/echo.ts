@@ -1,27 +1,51 @@
-import Echo from 'laravel-echo';
-import Pusher from 'pusher-js';
 import { usePassengerAuthStore } from '../store/usePassengerAuthStore';
 
-// @ts-ignore
-window.Pusher = Pusher;
+declare var global: any;
+declare var window: any;
 
-export const setupEcho = () => {
-  const token = usePassengerAuthStore.getState().token;
-  
-  return new Echo({
-    broadcaster: 'reverb',
-    key: 'toitoi_live_key_2026', // Reverb App Key
-    wsHost: '192.168.29.11', // আপনার Local IP
-    wsPort: 8080,
-    wssPort: 8080,
-    forceTLS: false, // Local-এর জন্য false
-    enabledTransports: ['ws', 'wss'],
-    authEndpoint: 'http://192.168.29.11:8000/api/v1/broadcasting/auth', // খেয়াল করুন, এখানে 'v1' যোগ করা হয়েছে
-    auth: {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: 'application/json',
+// 1. Require modules to bypass ESM strict type checking
+const PusherModule = require('pusher-js');
+const EchoModule = require('laravel-echo');
+
+const Pusher = PusherModule.Pusher || PusherModule.default || PusherModule;
+const EchoClient = EchoModule.default || EchoModule;
+
+if (typeof global !== 'undefined') {
+  global.Pusher = Pusher;
+}
+if (typeof window !== 'undefined') {
+  window.Pusher = Pusher;
+}
+
+export const setupEcho = async () => {
+  try {
+    const token = usePassengerAuthStore.getState().token;
+
+    if (!token) {
+        console.warn("Echo Setup Warning: Token is missing!");
+    }
+
+    const echoInstance = new EchoClient({
+      broadcaster: 'reverb',
+      key: 'toitoi_live_key_2026',
+      wsHost: 'staging.toitoi.co.in',
+      wsPort: 443,
+      wssPort: 443,
+      forceTLS: true,
+      disableStats: true,
+      enabledTransports: ['ws', 'wss'],
+      authEndpoint: 'https://staging.toitoi.co.in/api/v1/broadcasting/auth',
+      auth: {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/json',
+        },
       },
-    },
-  });
+    });
+
+    return echoInstance;
+  } catch (error) {
+    console.error('Echo Constructor Error:', error);
+    throw error;
+  }
 };
